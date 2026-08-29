@@ -94,6 +94,8 @@ jobs:
 
             cd ~/app
 
+            echo "IMAGE_URI=$IMAGE_URI" > .env
+
             cat > .env.app << 'EOF'
             DB_URL=${{ secrets.DB_URL }}
             DB_USERNAME=${{ secrets.DB_USERNAME }}
