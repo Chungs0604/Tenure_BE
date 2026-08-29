@@ -79,7 +79,7 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "docker-compose.yml,nginx/nginx.conf"
-          target: "~/tenure"
+          target: "~/app"
 
       - name: Deploy on EC2
         uses: appleboy/ssh-action@v1
@@ -92,7 +92,7 @@ jobs:
             aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
               | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
 
-            cd ~/tenure
+            cd ~/app
 
             cat > .env.app << 'EOF'
             DB_URL=${{ secrets.DB_URL }}
