@@ -1,6 +1,6 @@
-package com.tenure.global.storage.r2;
+package com.tenure.global.storage.s3;
 
-import com.tenure.global.config.R2StorageProperties;
+import com.tenure.global.config.S3StorageProperties;
 import com.tenure.global.exception.CommonErrorCode;
 import com.tenure.global.exception.CustomException;
 import com.tenure.global.storage.ImageStorageService;
@@ -22,12 +22,12 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
 @Service
-@ConditionalOnProperty(name = "tenure.storage.type", havingValue = "r2")
+@ConditionalOnProperty(name = "tenure.storage.type", havingValue = "s3")
 @RequiredArgsConstructor
-public class R2ImageStorageService implements ImageStorageService {
+public class S3ImageStorageService implements ImageStorageService {
 
-    private final S3Client r2S3Client;
-    private final R2StorageProperties properties;
+    private final S3Client awsS3Client;
+    private final S3StorageProperties properties;
 
     @Override
     public StoredImage storeImage(MultipartFile file, String directory) {
@@ -40,7 +40,7 @@ public class R2ImageStorageService implements ImageStorageService {
                     .contentType(contentType)
                     .contentLength(file.getSize())
                     .build();
-            r2S3Client.putObject(request, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+            awsS3Client.putObject(request, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
             return new StoredImage(buildPublicUrl(objectKey), objectKey, contentType, file.getSize());
         } catch (IOException | S3Exception e) {
             throw new CustomException(CommonErrorCode.INTERNAL_SERVER_ERROR);
@@ -57,7 +57,7 @@ public class R2ImageStorageService implements ImageStorageService {
                     .contentType(contentType)
                     .contentLength((long) bytes.length)
                     .build();
-            r2S3Client.putObject(request, RequestBody.fromBytes(bytes));
+            awsS3Client.putObject(request, RequestBody.fromBytes(bytes));
             return new StoredImage(buildPublicUrl(objectKey), objectKey, contentType, bytes.length);
         } catch (S3Exception e) {
             throw new CustomException(CommonErrorCode.INTERNAL_SERVER_ERROR);
@@ -67,13 +67,13 @@ public class R2ImageStorageService implements ImageStorageService {
     @Override
     public byte[] readBytes(String objectKey) throws IOException {
         try {
-            ResponseBytes<GetObjectResponse> bytes = r2S3Client.getObjectAsBytes(GetObjectRequest.builder()
+            ResponseBytes<GetObjectResponse> bytes = awsS3Client.getObjectAsBytes(GetObjectRequest.builder()
                     .bucket(properties.bucket())
                     .key(objectKey)
                     .build());
             return bytes.asByteArray();
         } catch (S3Exception e) {
-            throw new IOException("Failed to read R2 object: " + objectKey, e);
+            throw new IOException("Failed to read S3 object: " + objectKey, e);
         }
     }
 
@@ -83,7 +83,7 @@ public class R2ImageStorageService implements ImageStorageService {
             return;
         }
         try {
-            r2S3Client.deleteObject(DeleteObjectRequest.builder()
+            awsS3Client.deleteObject(DeleteObjectRequest.builder()
                     .bucket(properties.bucket())
                     .key(objectKey)
                     .build());
