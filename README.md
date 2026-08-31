@@ -1,6 +1,152 @@
-# Tenure_BE
+<h1 align="center">Tenure</h1>
 
-Tenure 백엔드 팀 Repository입니다
+<p align="center">
+  <b>입었던 기록을 남기고, 판매할 때 옷의 가치를 보여주다</b>
+</p>
+
+<p align="center">
+  OOTD 사진 속 아이템의 누적된 착용 기록을 확인하고,<br>
+  거래 제안까지 이어갈 수 있는 패션 거래 서비스
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Java-17-007396?style=flat-square&logo=openjdk&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Spring Boot-3.5.16-6DB33F?style=flat-square&logo=springboot&logoColor=white"/>
+  <img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white"/>
+  <img src="https://img.shields.io/badge/AWS-232F3E?style=flat-square&logo=amazonwebservices&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white"/>
+</p>
+
+<p align="center">
+  <a href="https://api.chungs.store/swagger-ui/index.html">📄 API 문서 (Swagger)</a>
+</p>
+
+---
+
+## 프레젠테이션
+
+<img src="docs/images/slides/slide01.png" width="100%"/>
+<img src="docs/images/slides/slide02.png" width="100%"/>
+<img src="docs/images/slides/slide03.png" width="100%"/>
+<img src="docs/images/slides/slide04.png" width="100%"/>
+<img src="docs/images/slides/slide05.png" width="100%"/>
+<img src="docs/images/slides/slide06.png" width="100%"/>
+<img src="docs/images/slides/slide07.png" width="100%"/>
+<img src="docs/images/slides/slide08.png" width="100%"/>
+<img src="docs/images/slides/slide09.png" width="100%"/>
+<img src="docs/images/slides/slide10.png" width="100%"/>
+<img src="docs/images/slides/slide11.png" width="100%"/>
+<img src="docs/images/slides/slide12.png" width="100%"/>
+
+
+---
+
+## 핵심 기능
+
+| 기능 | 설명 |
+|------|------|
+| **OOTD 피드** | 전체/팔로우 피드에서 착장을 탐색하고, 사진 속 태그로 아이템 정보 확인 및 구매 제안 |
+| **OOTD 게시** | 착장 촬영 후 Gemini AI가 아이템을 자동 인식·태그, 간편하게 게시 |
+| **등록된 아이템** | 착용 횟수·기간 등 누적 기록 확인, 필요 시 판매로 전환 |
+| **거래** | 구매 제안 → 수락 → 배송 → 구매 확정 → 정산까지 단계별 거래 진행 |
+| **채팅** | 아이템별 채팅방에서 판매자와 실시간 대화 및 구매 상담 |
+| **마이페이지** | OOTD·아이템·위시리스트·구매/판매 내역 통합 관리 |
+
+---
+
+## 기술 스택
+
+### Backend
+| 분류 | 기술 |
+|------|------|
+| Language | Java 17 |
+| Framework | Spring Boot 3.5.16 |
+| Build | Gradle |
+| ORM | Spring Data JPA |
+| DB Migration | Flyway |
+| Auth | Spring Security, JWT |
+| Real-time | WebSocket (채팅) |
+| Mail | Spring Mail (이메일 인증) |
+| AI | Google Gemini (아이템 자동 태그) |
+| Docs | SpringDoc OpenAPI (Swagger) |
+
+### Database / Storage
+| 분류 | 기술 |
+|------|------|
+| Database | PostgreSQL (AWS RDS) |
+| File Storage | AWS S3 |
+
+### Infra / DevOps
+| 분류 | 기술 |
+|------|------|
+| Cloud | AWS EC2, ECR, RDS, S3 |
+| Container | Docker, Docker Compose |
+| Reverse Proxy | Nginx |
+| SSL | Let's Encrypt |
+| CI/CD | GitHub Actions |
+
+---
+
+## 시스템 아키텍처
+
+<img src="docs/images/architecture.png" width="100%"/>
+
+---
+
+## ERD
+
+<img src="docs/images/erd.png" width="100%"/>
+
+---
+
+## API 문서
+
+배포 환경: **[https://api.chungs.store/swagger-ui/index.html](https://api.chungs.store/swagger-ui/index.html)**
+
+---
+
+## 로컬 개발 환경 설정
+
+### 요구 사항
+- Java 17
+- PostgreSQL
+
+### 환경 변수
+
+```bash
+DB_URL=jdbc:postgresql://localhost:5432/Tenure_DB
+DB_USERNAME=your_username
+DB_PASSWORD=your_password
+JWT_SECRET=your_jwt_secret_at_least_32_bytes
+ENCRYPTION_SECRET=your_aes_secret_32_bytes
+```
+
+### 실행
+
+```bash
+./gradlew bootRun
+```
+
+로컬 파일 스토리지 기본 설정(`STORAGE_TYPE=local`)으로 실행됩니다.
+업로드 파일은 `./uploads` 디렉토리에 저장됩니다.
+
+---
+
+## CI/CD 파이프라인
+
+`main` 브랜치에 push하면 자동으로 배포됩니다.
+
+```
+main push
+  └─→ [1] 테스트 실행 (통과해야 배포 진행)
+        └─→ [2] Docker 이미지 빌드 → ECR push
+              └─→ [3] EC2 SSH 접속
+                    ├─ docker-compose.yml, nginx.conf 전송
+                    ├─ ECR에서 새 이미지 pull
+                    └─ docker compose up -d
+```
+
+---
 
 # Tenure Backend Convention
 
