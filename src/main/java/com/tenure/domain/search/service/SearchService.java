@@ -6,6 +6,7 @@ import com.tenure.domain.ootd.enums.OotdReactionType;
 import com.tenure.domain.ootd.exception.OotdErrorCode;
 import com.tenure.domain.ootd.repository.OotdReactionRepository;
 import com.tenure.domain.ootd.repository.OotdRecommendProjection;
+import com.tenure.domain.search.dto.request.OotdSearchCondition;
 import com.tenure.domain.search.entity.RecentViewOotd;
 import com.tenure.domain.search.enums.ItemStatusFilter;
 import com.tenure.domain.ootd.entity.Ootd;
@@ -34,6 +35,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -150,102 +152,38 @@ public class SearchService {
     // ootd 검색(공개된 ootd, 카테고리조건, 제품 명 or 브랜드 명에서 키워드 검색)
     @Transactional
     public SearchOotdCursorResponse searchOotds(
-            Long currentUserId,
-            String keyword, UserGender gender,
-            Integer heightMin, Integer heightMax,
-            Integer weightMin, Integer weightMax,
-            List<Long> categoryIds, ItemStatusFilter itemStatusFilter, SearchSortType sort,
-            LocalDateTime cursor, Long cursorId,
-            Integer cursorValue, Double cursorHotScore,
-            int size
+            Long currentUserId, String keyword, OotdSearchCondition condition, int size
     ) {
 
         log.info("[OOTD 검색 api 호출] keyword = {}", keyword);
 
-        // 키워드가 빈칸으로 들어오는경우
-        if (keyword == null || keyword.isBlank()) keyword = "";
+        // 유효한 키워드 체크
+        String cleanKeyword = StringUtils.hasText(keyword) ? keyword.trim() : "";
 
         // 유효한 검색어면 최근 검색어 저장
-        if (!keyword.isBlank()) {
+        if (!cleanKeyword.isEmpty()) {
             User user = userRepository.getReferenceById(currentUserId);
             recentSearchKeywordRepository.save(RecentSearchKeyword.of(user, keyword));
         }
 
-        if (categoryIds != null && categoryIds.isEmpty()) {
-            categoryIds = null;
-        }
-
-        if (keyword.isBlank() && (categoryIds == null || categoryIds.isEmpty())) {
+        // 키워드가 비어있거나, 카테고리가 없는 경우
+        if (cleanKeyword.isEmpty() && (condition.getCategoryIds() == null || condition.getCategoryIds().isEmpty())) {
             log.warn("[OOTD 검색 api] 검색어 또는 카테고리를 선택해주세요");
             throw new CustomException(SearchErrorCode.KEYWORD_OR_CATEGORY_REQUIRED);
         }
 
-        log.debug("[OOTD 검색] gender = {}, heightMin = {}, heightMax = {}, weightMin = {}, weightMax = {}, categoryIds = {}, itemStatusFilter = {}, cursor = {}, cursorId = {}",
-                gender, heightMin, heightMax, weightMin, weightMax, categoryIds, itemStatusFilter, cursor, cursorId);
+        // 추천순(RECOMMEND) 분기 — native SQL 사용, QueryDSL 쿼리 생략
+        if (condition.getSort() == SearchSortType.RECOMMEND) {
+            return searchOotdsByRecommend(currentUserId, keyword, condition, size);
+        }
+
+        log.debug("[OOTD 검색] gender = {}, heightMin = {}, heightMax = {}, weightMin = {}, weightMax = {}, categoryIds = {}, itemStatusFilter = {}",
+                condition.getGender(), condition.getHeightMin(), condition.getHeightMax(), condition.getHeightMin(), condition.getHeightMax(), condition.getCategoryIds(), condition.getItemStatusFilter());
 
         PageRequest pageRequest = PageRequest.of(0, size);
 
-        // 판매중만 여부 판단
-        boolean onSaleOnly = (itemStatusFilter == ItemStatusFilter.ON_SALE_ONLY);
-
-        ItemStatus itemStatus = (itemStatusFilter == ItemStatusFilter.ON_SALE_INCLUDED) ? ItemStatus.ON_SALE : null;
-
-        // 추천순(RECOMMEND) 분기 — 별도 native SQL 사용
-        if (sort == SearchSortType.RECOMMEND) {
-            return searchOotdsByRecommend(
-                    currentUserId, keyword, gender,
-                    heightMin, heightMax, weightMin, weightMax,
-                    categoryIds, itemStatus, onSaleOnly,
-                    cursorHotScore, cursorId, size);
-        }
-
-        Slice<Ootd> ootds;
-        Long count;
-
-        if (onSaleOnly) {
-            // 판매중만: 모든 CONFIRMED 태그 아이템이 ON_SALE인 OOTD
-            // 추천순 기준이 명확치 않아 최신순으로 일단 정렬 (최신순, 추천순)
-            if (sort.equals(SearchSortType.LATEST) || sort.equals(SearchSortType.RECOMMEND)) {
-                if (cursor == null) cursor = LocalDateTime.now();
-                if (cursorId == null) cursorId = Long.MAX_VALUE;
-
-                ootds = ootdRepository.searchOotdsByLatestOnSaleOnly(
-                        keyword, gender, heightMin, heightMax, weightMin, weightMax, categoryIds,
-                        cursor, cursorId, pageRequest);
-
-            } else { // 좋아요순, 저장순 정렬
-                if (cursorValue == null) cursorValue = Integer.MAX_VALUE;
-                if (cursorId == null) cursorId = Long.MAX_VALUE;
-                ootds = ootdRepository.searchOotdsByCountOnSaleOnly(
-                        keyword, gender, heightMin, heightMax, weightMin, weightMax, categoryIds,
-                        sort.name(), cursorValue, cursorId, pageRequest);
-            }
-
-            // 전체 몇건인지 조회(판매중만)
-            count = ootdRepository.searchOotdsTotalCountOnSaleOnly(
-                    keyword, gender, heightMin, heightMax, weightMin, weightMax, categoryIds);
-        } else {
-            // 전체(null) + 판매중포함(ON_SALE)
-            if (sort.equals(SearchSortType.LATEST) || sort.equals(SearchSortType.RECOMMEND)) {
-
-                if (cursor == null) cursor = LocalDateTime.now();
-                if (cursorId == null) cursorId = Long.MAX_VALUE;
-
-                ootds = ootdRepository.searchOotdsByLatest(
-                        keyword, gender, heightMin, heightMax, weightMin, weightMax, categoryIds,
-                        itemStatus, cursor, cursorId, pageRequest);
-            } else {
-
-                if (cursorValue == null) cursorValue = Integer.MAX_VALUE;
-                if (cursorId == null) cursorId = Long.MAX_VALUE;
-
-                ootds = ootdRepository.searchOotdsByCount(
-                        keyword, gender, heightMin, heightMax, weightMin, weightMax, categoryIds,
-                        itemStatus, sort.name(), cursorValue, cursorId, pageRequest);
-            }
-            count = ootdRepository.searchOotdsTotalCount(
-                    keyword, gender, heightMin, heightMax, weightMin, weightMax, categoryIds, itemStatus);
-        }
+        Slice<Ootd> ootds = ootdRepository.searchOotd(keyword, condition, pageRequest);
+        Long count = ootdRepository.searchOotdsTotalCount(keyword, condition, pageRequest);
 
         List<Long> ootdsId = ootds.map(Ootd::getId).toList();
         Set<Long> saveOotdIds = ootdReactionRepository
@@ -254,11 +192,10 @@ public class SearchService {
         Set<Long> heartedOotdIds = ootdReactionRepository
                 .findReactedOotdIds(currentUserId, ootdsId, OotdReactionType.HEART);
 
-
         log.debug("[OOTD 검색] 전체 조회 결과(total count) = {}건", count);
         log.debug("[OOTD 검색] 조회 {}건, hasNext = {}", ootds.getNumberOfElements(), ootds.hasNext());
 
-        return SearchOotdCursorResponse.from(ootds, sort, count, heartedOotdIds, saveOotdIds);
+        return SearchOotdCursorResponse.from(ootds, condition.getSort(), count, heartedOotdIds, saveOotdIds);
     }
 
     //유저 검색
@@ -530,21 +467,20 @@ public class SearchService {
 
     // ootd 추천순 정렬
     private SearchOotdCursorResponse searchOotdsByRecommend(
-            Long currentUserId, String keyword, UserGender gender,
-            Integer heightMin, Integer heightMax, Integer weightMin, Integer weightMax,
-            List<Long> categoryIds, ItemStatus itemStatus, boolean onSaleOnly,
-            Double cursorHotScore, Long cursorId,
-            int size) {
+            Long currentUserId, String keyword, OotdSearchCondition condition, int size) {
 
-        // 키워드가 있는지
-        boolean hasKeyword = !keyword.isBlank();
+        boolean hasKeyword = StringUtils.hasText(keyword);
 
-        // 카테고리가 있는지
+        List<Long> categoryIds = condition.getCategoryIds();
         boolean hasCat = categoryIds != null && !categoryIds.isEmpty();
-
-        // 카테고리가 없는 경우를 방지하기 위해 list에 -1L(임의의 값)을 할당
         List<Long> catIds = hasCat ? categoryIds : List.of(-1L);
-        String genderStr = gender != null ? gender.name() : null;
+
+        String genderStr = condition.getGender() != null ? condition.getGender().name() : null;
+
+        boolean onSaleOnly = condition.getItemStatusFilter() == ItemStatusFilter.ON_SALE_ONLY;
+        // ON_SALE_INCLUDED → item_status 컬럼 필터로 'ON_SALE' 전달, ON_SALE_ONLY는 별도 onSaleOnly 플래그로 처리
+        ItemStatus itemStatus = (condition.getItemStatusFilter() == ItemStatusFilter.ON_SALE_INCLUDED)
+                ? ItemStatus.ON_SALE : null;
         String itemStatusStr = itemStatus != null ? itemStatus.name() : null;
 
         log.debug("[RECOMMEND 검색] hasKeyword={}, hasCat={}, onSaleOnly={}", hasKeyword, hasCat, onSaleOnly);
@@ -553,14 +489,18 @@ public class SearchService {
         // 키워드가 있는경우 - 검색 적합도(matchScore)와 인기·최신성 점수(hotScore)를 모두 계산하여 복합 정렬
         if (hasKeyword) {
             rawProjections = ootdRepository.searchOotdsByRecommendWithKeyword(
-                    keyword, genderStr, heightMin, heightMax, weightMin, weightMax,
+                    keyword, genderStr,
+                    condition.getHeightMin(), condition.getHeightMax(),
+                    condition.getWeightMin(), condition.getWeightMax(),
                     hasCat, catIds, itemStatusStr, onSaleOnly,
-                    cursorHotScore, cursorId, size + 1);
+                    condition.getCursorHotScore(), condition.getCursorId(), size + 1);
         } else { // 필터만 있는 경우 - 인기·최신성 점수(hotScore) 기준으로만 빠르게 정렬.
             rawProjections = ootdRepository.searchOotdsByRecommendFilterOnly(
-                    genderStr, heightMin, heightMax, weightMin, weightMax,
+                    genderStr,
+                    condition.getHeightMin(), condition.getHeightMax(),
+                    condition.getWeightMin(), condition.getWeightMax(),
                     hasCat, catIds, itemStatusStr, onSaleOnly,
-                    cursorHotScore, cursorId, size + 1);
+                    condition.getCursorHotScore(), condition.getCursorId(), size + 1);
         }
 
         boolean hasNext = rawProjections.size() > size;
@@ -586,15 +526,20 @@ public class SearchService {
         Long count;
         if (onSaleOnly) {
             count = ootdRepository.searchOotdsTotalCountOnSaleOnly(
-                    keyword, gender, heightMin, heightMax, weightMin, weightMax, categoryIds);
+                    keyword, condition.getGender(),
+                    condition.getHeightMin(), condition.getHeightMax(),
+                    condition.getWeightMin(), condition.getWeightMax(),
+                    categoryIds);
         } else {
             count = ootdRepository.searchOotdsTotalCount(
-                    keyword, gender, heightMin, heightMax, weightMin, weightMax, categoryIds, itemStatus);
+                    keyword, condition.getGender(),
+                    condition.getHeightMin(), condition.getHeightMax(),
+                    condition.getWeightMin(), condition.getWeightMax(),
+                    categoryIds, itemStatus);
         }
 
         log.debug("[RECOMMEND 검색] 조회 {}건, hasNext={}", ootds.size(), hasNext);
-        return SearchOotdCursorResponse
-                .fromRecommend(ootds, hasNext, count, heartedOotdIds, saveOotdIds);
+        return SearchOotdCursorResponse.fromRecommend(ootds, hasNext, count, heartedOotdIds, saveOotdIds);
     }
 
     private Set<Long> buildExcludeIds(List<Ootd> result, Long sourceOotdId) {

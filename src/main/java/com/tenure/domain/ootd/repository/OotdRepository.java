@@ -17,7 +17,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
-public interface OotdRepository extends JpaRepository<Ootd, Long> {
+public interface OotdRepository extends JpaRepository<Ootd, Long>, OotdRepositoryCustom {
 
     @Modifying(clearAutomatically = true)
     @Query("update Ootd o set o.heartCount = o.heartCount + 1 where o.id = :ootdId")
@@ -60,76 +60,6 @@ public interface OotdRepository extends JpaRepository<Ootd, Long> {
             @Param("itemStatus") ItemStatus itemStatus
     );
 
-    @Query("select o from Ootd o " +
-            "where o.publicationStatus = com.tenure.domain.ootd.enums.OotdPublicationStatus.ACTIVE " +
-            "and (:gender is null or o.owner.gender = :gender) " +
-            "and (:heightMin is null or o.owner.heightCm >= :heightMin) " +
-            "and (:heightMax is null or o.owner.heightCm <= :heightMax) " +
-            "and (:weightMin is null or o.owner.weightKg >= :weightMin) " +
-            "and (:weightMax is null or o.owner.weightKg <= :weightMax) " +
-            "and o.id in (select ot.ootd.id from OotdTag ot " +
-            "where ot.item is not null " +
-            "and ot.status = com.tenure.domain.tag.enums.TagStatus.CONFIRMED " +
-            "and (:keyword is null or (lower(ot.item.itemName) like lower(concat('%', :keyword, '%')) " +
-            "or lower(ot.item.brandName) like lower(concat('%', :keyword, '%')))) " +
-            "and (:categoryIds is null or ot.item.category.id in :categoryIds or ot.item.category.parent.id in :categoryIds)) " +
-            "and (:itemStatus is null or o.id in (select ot2.ootd.id from OotdTag ot2 where ot2.item.itemStatus = :itemStatus)) " +
-            "and (o.createdAt < :cursor or (o.createdAt = :cursor and o.id < :cursorId)) " +
-            "order by o.createdAt desc, o.id desc ")
-    Slice<Ootd> searchOotdsByLatest(
-            @Param("keyword") String keyword,
-            @Param("gender") UserGender gender,
-            @Param("heightMin") Integer heightMin,
-            @Param("heightMax") Integer heightMax,
-            @Param("weightMin") Integer weightMin,
-            @Param("weightMax") Integer weightMax,
-            @Param("categoryIds") List<Long> categoryIds,
-            @Param("itemStatus") ItemStatus itemStatus,
-            @Param("cursor") LocalDateTime cursor,
-            @Param("cursorId") Long cursorId,
-            Pageable pageable
-    );
-
-    @Query("select o from Ootd o " +
-            "where o.publicationStatus = com.tenure.domain.ootd.enums.OotdPublicationStatus.ACTIVE " +
-            "and (:gender is null or o.owner.gender = :gender) " +
-            "and (:heightMin is null or o.owner.heightCm >= :heightMin) " +
-            "and (:heightMax is null or o.owner.heightCm <= :heightMax) " +
-            "and (:weightMin is null or o.owner.weightKg >= :weightMin) " +
-            "and (:weightMax is null or o.owner.weightKg <= :weightMax) " +
-            "and o.id in (select ot.ootd.id from OotdTag ot " +
-            "where ot.item is not null " +
-            "and ot.status = com.tenure.domain.tag.enums.TagStatus.CONFIRMED " +
-            "and (:keyword is null or (lower(ot.item.itemName) like lower(concat('%', :keyword, '%')) " +
-            "or lower(ot.item.brandName) like lower(concat('%', :keyword, '%')))) " +
-            "and (:categoryIds is null or ot.item.category.id in :categoryIds or ot.item.category.parent.id in :categoryIds)) " +
-            "and (:itemStatus is null or o.id in (select ot2.ootd.id from OotdTag ot2 where ot2.item.itemStatus = :itemStatus)) " +
-            "and (case :sort" +
-            "           when 'HEART' then o.heartCount" +
-            "           when 'SAVE' then o.saveCount" +
-            "           else o.viewCount end < :cursorValue" +
-            "     or (case :sort" +
-            "           when 'HEART' then o.heartCount" +
-            "           when 'SAVE' then o.saveCount" +
-            "           else o.viewCount end = :cursorValue and o.id < :cursorId)) " +
-            "order by case :sort" +
-            "           when 'HEART' then o.heartCount" +
-            "           when 'SAVE' then o.saveCount" +
-            "           else o.viewCount end desc, o.id desc")
-    Slice<Ootd> searchOotdsByCount(
-            @Param("keyword") String keyword,
-            @Param("gender") UserGender gender,
-            @Param("heightMin") Integer heightMin,
-            @Param("heightMax") Integer heightMax,
-            @Param("weightMin") Integer weightMin,
-            @Param("weightMax") Integer weightMax,
-            @Param("categoryIds") List<Long> categoryIds,
-            @Param("itemStatus") ItemStatus itemStatus,
-            @Param("sort") String sort,
-            @Param("cursorValue") Integer cursorValue,
-            @Param("cursorId") Long cursorId,
-            Pageable pageable
-    );
 
     @Query("select count(o) from Ootd o " +
             "where o.publicationStatus = com.tenure.domain.ootd.enums.OotdPublicationStatus.ACTIVE " +
@@ -161,85 +91,6 @@ public interface OotdRepository extends JpaRepository<Ootd, Long> {
     );
 
 
-    //모든 태그된 아이템이 "판매중"인 ootd 필터링
-    @Query("select o from Ootd o " +
-            "where o.publicationStatus = com.tenure.domain.ootd.enums.OotdPublicationStatus.ACTIVE " +
-            "and (:gender is null or o.owner.gender = :gender) " +
-            "and (:heightMin is null or o.owner.heightCm >= :heightMin) " +
-            "and (:heightMax is null or o.owner.heightCm <= :heightMax) " +
-            "and (:weightMin is null or o.owner.weightKg >= :weightMin) " +
-            "and (:weightMax is null or o.owner.weightKg <= :weightMax) " +
-            "and o.id in (select ot.ootd.id from OotdTag ot " +
-            "where ot.item is not null " +
-            "and ot.status = com.tenure.domain.tag.enums.TagStatus.CONFIRMED " +
-            "and (:keyword is null or (lower(ot.item.itemName) like lower(concat('%', :keyword, '%')) " +
-            "or lower(ot.item.brandName) like lower(concat('%', :keyword, '%')))) " +
-            "and (:categoryIds is null or ot.item.category.id in :categoryIds or ot.item.category.parent.id in :categoryIds)) " +
-            "and exists (select 1 from OotdTag ot2 where ot2.ootd.id = o.id " +
-            "    and ot2.item is not null and ot2.status = com.tenure.domain.tag.enums.TagStatus.CONFIRMED " +
-            "    and ot2.item.itemStatus = com.tenure.domain.item.enums.ItemStatus.ON_SALE) " +
-            "and not exists (select 1 from OotdTag ot2 where ot2.ootd.id = o.id " +
-            "    and ot2.item is not null and ot2.status = com.tenure.domain.tag.enums.TagStatus.CONFIRMED " +
-            "    and ot2.item.itemStatus <> com.tenure.domain.item.enums.ItemStatus.ON_SALE) " +
-            "and (o.createdAt < :cursor or (o.createdAt = :cursor and o.id < :cursorId)) " +
-            "order by o.createdAt desc, o.id desc ")
-    Slice<Ootd> searchOotdsByLatestOnSaleOnly(
-            @Param("keyword") String keyword,
-            @Param("gender") UserGender gender,
-            @Param("heightMin") Integer heightMin,
-            @Param("heightMax") Integer heightMax,
-            @Param("weightMin") Integer weightMin,
-            @Param("weightMax") Integer weightMax,
-            @Param("categoryIds") List<Long> categoryIds,
-            @Param("cursor") LocalDateTime cursor,
-            @Param("cursorId") Long cursorId,
-            Pageable pageable
-    );
-
-    @Query("select o from Ootd o " +
-            "where o.publicationStatus = com.tenure.domain.ootd.enums.OotdPublicationStatus.ACTIVE " +
-            "and (:gender is null or o.owner.gender = :gender) " +
-            "and (:heightMin is null or o.owner.heightCm >= :heightMin) " +
-            "and (:heightMax is null or o.owner.heightCm <= :heightMax) " +
-            "and (:weightMin is null or o.owner.weightKg >= :weightMin) " +
-            "and (:weightMax is null or o.owner.weightKg <= :weightMax) " +
-            "and o.id in (select ot.ootd.id from OotdTag ot " +
-            "where ot.item is not null " +
-            "and ot.status = com.tenure.domain.tag.enums.TagStatus.CONFIRMED " +
-            "and (:keyword is null or (lower(ot.item.itemName) like lower(concat('%', :keyword, '%')) " +
-            "or lower(ot.item.brandName) like lower(concat('%', :keyword, '%')))) " +
-            "and (:categoryIds is null or ot.item.category.id in :categoryIds or ot.item.category.parent.id in :categoryIds)) " +
-            "and exists (select 1 from OotdTag ot2 where ot2.ootd.id = o.id " +
-            "    and ot2.item is not null and ot2.status = com.tenure.domain.tag.enums.TagStatus.CONFIRMED " +
-            "    and ot2.item.itemStatus = com.tenure.domain.item.enums.ItemStatus.ON_SALE) " +
-            "and not exists (select 1 from OotdTag ot2 where ot2.ootd.id = o.id " +
-            "    and ot2.item is not null and ot2.status = com.tenure.domain.tag.enums.TagStatus.CONFIRMED " +
-            "    and ot2.item.itemStatus <> com.tenure.domain.item.enums.ItemStatus.ON_SALE) " +
-            "and (case :sort" +
-            "           when 'HEART' then o.heartCount" +
-            "           when 'SAVE' then o.saveCount" +
-            "           else o.viewCount end < :cursorValue" +
-            "     or (case :sort" +
-            "           when 'HEART' then o.heartCount" +
-            "           when 'SAVE' then o.saveCount" +
-            "           else o.viewCount end = :cursorValue and o.id < :cursorId)) " +
-            "order by case :sort" +
-            "           when 'HEART' then o.heartCount" +
-            "           when 'SAVE' then o.saveCount" +
-            "           else o.viewCount end desc, o.id desc")
-    Slice<Ootd> searchOotdsByCountOnSaleOnly(
-            @Param("keyword") String keyword,
-            @Param("gender") UserGender gender,
-            @Param("heightMin") Integer heightMin,
-            @Param("heightMax") Integer heightMax,
-            @Param("weightMin") Integer weightMin,
-            @Param("weightMax") Integer weightMax,
-            @Param("categoryIds") List<Long> categoryIds,
-            @Param("sort") String sort,
-            @Param("cursorValue") Integer cursorValue,
-            @Param("cursorId") Long cursorId,
-            Pageable pageable
-    );
 
     @Query("""
             select ootd
