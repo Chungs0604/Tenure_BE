@@ -45,25 +45,12 @@ public class NotificationService {
             Long currentUserId, NotificationCategory category, boolean unReadOnly,
             int size, Long cursorId, LocalDateTime cursor)
     {
-
-        log.info("[모든 알림 조회 api 호출] currentUserId = {}", currentUserId);
-
-
-        if(cursor == null) {
-            cursor = LocalDateTime.now();
-        }
-
-        if (cursorId == null) {
-            cursorId = Long.MAX_VALUE;
-        }
-
         log.debug("[모든 알림 조회] category = {}, unReadOnly = {}, size = {}, cursorId = {}, cursor = {}", category, unReadOnly, size, cursorId, cursor);
 
-        PageRequest pageRequest = PageRequest
-                .of(0, size, Sort.by(Sort.Direction.DESC, "createdAt", "id"));
+        PageRequest pageRequest = PageRequest.of(0, size);
 
         Slice<Notification> sliceNotification = notificationRepository
-                .findNotification(currentUserId, category, unReadOnly, cursor, cursorId, pageRequest);
+                .findAllNotification(currentUserId, category, unReadOnly, cursor, cursorId, pageRequest);
 
         log.debug("[모든 알림 조회] 조회 {}건, hasNext = {}", sliceNotification.getNumberOfElements(), sliceNotification.hasNext());
 

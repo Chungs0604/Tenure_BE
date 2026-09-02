@@ -95,8 +95,10 @@ public class SearchController {
         log.info("[OOTD 검색 api 호출] keyword = {}, sort = {}", keyword, condition.getSort());
 
         SearchOotdCursorResponse searchOotdCursorResponse = searchService
-                .searchOotds(currentUserProvider.getCurrentUserId(),
-                        keyword, condition, size);
+                .searchOotds(
+                        currentUserProvider.getCurrentUserId(),
+                        keyword, condition, size
+                );
 
         return BaseResponse.success(searchOotdCursorResponse);
     }
