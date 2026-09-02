@@ -33,6 +33,8 @@ public class SearchOotdCursorResponse {
         Integer nextCursorValue = null;
         Long nextCursorId = null;
 
+        SearchSortType sortType = (sort != null) ? sort : SearchSortType.LATEST;
+
         if(hasNext && !ootds.isEmpty()) {
             Ootd ootd = ootds.get(ootds.size() - 1);
             nextCursorId = ootd.getId();

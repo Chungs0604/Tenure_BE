@@ -1,5 +1,6 @@
 package com.tenure.domain.search.controller;
 
+import com.tenure.domain.search.dto.request.OotdSearchCondition;
 import com.tenure.domain.search.enums.ItemStatusFilter;
 import com.tenure.domain.search.dto.response.*;
 import com.tenure.domain.search.enums.SearchSortType;
@@ -88,27 +89,14 @@ public class SearchController {
     @GetMapping("/ootds")
     public BaseResponse<SearchOotdCursorResponse> searchOotd(
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) UserGender gender,
-            @RequestParam(required = false) Integer heightMin,
-            @RequestParam(required = false) Integer heightMax,
-            @RequestParam(required = false) Integer weightMin,
-            @RequestParam(required = false) Integer weightMax,
-            @RequestParam(required = false) List<Long> categoryIds,
-            @RequestParam(required = false) ItemStatusFilter itemStatusFilter,
-            @RequestParam(defaultValue = "LATEST") SearchSortType sort,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime cursor,
-            @RequestParam(required = false) Long cursorId,
-            @RequestParam(required = false) Integer cursorValue,
-            @RequestParam(required = false) Double cursorHotScore,
+            @ModelAttribute OotdSearchCondition condition,
             @RequestParam(defaultValue = "20") int size)
     {
-        log.info("[OOTD 검색 api 호출] keyword = {}, sort = {}", keyword, sort);
+        log.info("[OOTD 검색 api 호출] keyword = {}, sort = {}", keyword, condition.getSort());
 
         SearchOotdCursorResponse searchOotdCursorResponse = searchService
                 .searchOotds(currentUserProvider.getCurrentUserId(),
-                        keyword, gender, heightMin, heightMax,
-                        weightMin, weightMax, categoryIds, itemStatusFilter, sort,
-                        cursor, cursorId, cursorValue, cursorHotScore, size);
+                        keyword, condition, size);
 
         return BaseResponse.success(searchOotdCursorResponse);
     }
