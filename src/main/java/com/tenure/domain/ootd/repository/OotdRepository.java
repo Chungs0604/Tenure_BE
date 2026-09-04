@@ -4,6 +4,7 @@ import com.tenure.domain.follow.enums.FollowStatus;
 import com.tenure.domain.item.enums.ItemStatus;
 import com.tenure.domain.ootd.entity.Ootd;
 import com.tenure.domain.ootd.enums.OotdPublicationStatus;
+import com.tenure.domain.ootd.repository.custom.OotdRepositoryCustom;
 import com.tenure.domain.user.enums.UserGender;
 import java.time.LocalDateTime;
 import java.util.Collection;

@@ -55,7 +55,6 @@ public class NotificationService {
         log.debug("[모든 알림 조회] 조회 {}건, hasNext = {}", sliceNotification.getNumberOfElements(), sliceNotification.hasNext());
 
         return NotificationCursorResponse.from(sliceNotification);
-
     }
 
     //단건 읽음 처리

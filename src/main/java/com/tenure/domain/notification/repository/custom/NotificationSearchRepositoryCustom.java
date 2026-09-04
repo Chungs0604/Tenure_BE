@@ -1,4 +1,4 @@
-package com.tenure.domain.notification.repository;
+package com.tenure.domain.notification.repository.custom;
 
 import com.tenure.domain.notification.entity.Notification;
 import com.tenure.domain.notification.enums.NotificationCategory;

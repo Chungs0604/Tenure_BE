@@ -1,9 +1,8 @@
-package com.tenure.domain.notification.repository;
+package com.tenure.domain.notification.repository.custom;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.tenure.domain.notification.entity.Notification;
-import com.tenure.domain.notification.entity.QNotification;
 import com.tenure.domain.notification.enums.NotificationCategory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;

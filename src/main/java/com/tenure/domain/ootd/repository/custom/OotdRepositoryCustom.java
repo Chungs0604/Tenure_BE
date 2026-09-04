@@ -1,4 +1,4 @@
-package com.tenure.domain.ootd.repository;
+package com.tenure.domain.ootd.repository.custom;
 
 import com.tenure.domain.ootd.entity.Ootd;
 import com.tenure.domain.search.dto.request.OotdSearchCondition;
