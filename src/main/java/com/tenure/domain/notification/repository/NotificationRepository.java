@@ -2,6 +2,7 @@ package com.tenure.domain.notification.repository;
 
 import com.tenure.domain.notification.entity.Notification;
 import com.tenure.domain.notification.enums.NotificationType;
+import com.tenure.domain.notification.repository.custom.NotificationSearchRepositoryCustom;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -10,7 +11,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
-public interface NotificationRepository extends JpaRepository<Notification, Long>, NotificationSearchRepositoryCustom  {
+public interface NotificationRepository extends JpaRepository<Notification, Long>, NotificationSearchRepositoryCustom {
 
 
     // 전체 읽음 수정(안읽은 알림 일괄 업데이트)
